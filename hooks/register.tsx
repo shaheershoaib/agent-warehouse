@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Agent, Ping, Strip } from '../types'
 import { backgroundSvg, robotSvg, tagsSvg } from './art'
 import { H, W, asDrawn, enter, freeColor, freeSlot, goTo, goneAt, leave, posAt, reanchor, stationX } from './plan'
+import { verdictOf } from './verdict'
 
 const PANE = 'agents'
 // The strip stays a while after the last agent finishes, then makes room again.
@@ -31,6 +32,8 @@ const activity = new Map<string, { tool: string; doing: string }>()
 const seats = new Map<string, Agent['station']>()
 const wanted = new Map<string, Agent['station']>()
 let isFlushQueued = false
+// Agents whose answer is still being judged: the engine's own list must not settle them first.
+const judging = new Set<string>()
 // Spawns and moves are applied one after another, so each sees the one before it.
 let chain: Promise<unknown> = Promise.resolve()
 const serial = <T,>(work: () => Promise<T>) => {
@@ -152,7 +155,7 @@ const reconcile = async ($: EngineInterface) => {
   const live = await $.agent.list()
   const now = await $.clock.now()
   const gone = before.filter(agent => {
-    const info = agent.status === 'running' ? live.find(one => one.id === agent.id) : undefined
+    const info = agent.status === 'running' && !judging.has(agent.id) ? live.find(one => one.id === agent.id) : undefined
 
     return info !== undefined && info.status !== 'running'
   })
@@ -300,8 +303,18 @@ export const register: Register = on => {
   })
 
   on('turn.complete', async ($, e, next) => {
-    if (e.agentId) {
-      await finish($, e.agentId, e.reason === 'answer' ? 'done' : e.reason === 'aborted' ? 'stopped' : 'failed')
+    const id = e.agentId
+    if (id && e.reason === 'answer') {
+      // An answer can still say the task failed. It is judged off the hook's
+      // path, so the model call never holds up the turn.
+      judging.add(id)
+      const task = (await read($, agents)).find(agent => agent.id === id)?.task ?? ''
+      void verdictOf(e.answer, task, (text, labels) => $.model.classify(text, labels))
+        .then(status => finish($, id, status))
+        .catch(() => undefined)
+        .finally(() => judging.delete(id))
+    } else if (id) {
+      await finish($, id, e.reason === 'aborted' ? 'stopped' : 'failed')
     }
 
     return next(e)

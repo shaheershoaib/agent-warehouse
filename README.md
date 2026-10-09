@@ -40,7 +40,7 @@ Claude Code is still rolling out mods for marketplace plugins. If nothing appear
 - Opens on its own when your first agent starts; `/warehouse` opens it any time.
 - Stations: **WEB** (web fetches and MCP tools), **FILES** (reading and searching), **DESK** (edits), **BENCH** (shell commands), **MAIL** (messages and new agents). Agents still thinking wait on the rug.
 - Every robot wears its own color, so you can tell them apart even when they are the same kind of agent.
-- Letters fly between robots when agents message each other. Finished robots celebrate and leave by the exit; failed ones cry under a rain cloud, and keep crying all the way out.
+- Letters fly between robots when agents message each other. Finished robots celebrate and leave by the exit; failed ones cry under a rain cloud, and keep crying all the way out. An agent counts as failed when Claude Code reports an error, or when its final answer says it could not do the task (a quick check by Claude's small model reads the answer; one that starts with `FAILED` needs no check).
 - Point at or click a robot to see what it is doing right now and the task it was given. Click its name below the scene to keep those details open.
 
 ## Good to know
