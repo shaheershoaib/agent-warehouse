@@ -1,0 +1,16 @@
+{
+  "name": "agent-warehouse",
+  "owner": {
+    "name": "Shaheer Shoaib"
+  },
+  "metadata": {
+    "description": "agent-warehouse, a Claude Code mod by Shaheer Shoaib: your session's agents as animated robots in a warehouse."
+  },
+  "plugins": [
+    {
+      "name": "agent-warehouse",
+      "source": "./",
+      "description": "Your session's agents as little robots in a warehouse: they walk in, work at the station their tools need, celebrate and walk out. Click a name to see what each one is doing."
+    }
+  ]
+}

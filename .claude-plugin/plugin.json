@@ -1,0 +1,12 @@
+{
+  "name": "agent-warehouse",
+  "version": "0.2.4",
+  "description": "A vector warehouse where the session's agents are little robots: they walk in when spawned, go to the web, files, desk, bench or mail station as they work, cheer and walk out when done. Click a robot's name for what it is doing.",
+  "author": {
+    "name": "Shaheer Shoaib"
+  },
+  "homepage": "https://github.com/shaheershoaib/agent-warehouse",
+  "repository": "https://github.com/shaheershoaib/agent-warehouse",
+  "license": "Apache-2.0",
+  "types": "./types/index.d.ts"
+}
