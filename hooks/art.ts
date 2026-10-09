@@ -164,6 +164,12 @@ const timeline = (phases: Phase[], anchor: number): Timeline => {
   return { start, moves: { dur: total, values, keyTimes }, walks, work, cheer, sulk }
 }
 
+// The walk a robot's layer and its target on the top layer both follow.
+const motion = (tl: Timeline) =>
+  tl.moves
+    ? `<animateTransform attributeName="transform" type="translate" values="${tl.moves.values}" keyTimes="${tl.moves.keyTimes}" dur="${n(tl.moves.dur)}s" begin="0s" fill="freeze"/>`
+    : ''
+
 const SAD_GREY = '#7b8190'
 const SCALE = 0.84
 
@@ -193,9 +199,7 @@ export const robotSvg = (
   const legL = tl.walks.map(w => cycle('rotate', w, '0.42s', '-24 -5 -9;24 -5 -9;-24 -5 -9')).join('')
   const legR = tl.walks.map(w => cycle('rotate', w, '0.42s', '24 5 -9;-24 5 -9;24 5 -9')).join('')
   const tint = tl.sulk ? `<animate attributeName="fill" to="${mix(body, SAD_GREY, 0.72)}" ${window(tl.sulk).replace(/ dur="[^"]*"/, ' dur="0.4s"')} fill="freeze"/>` : ''
-  const move = tl.moves
-    ? `<animateTransform attributeName="transform" type="translate" values="${tl.moves.values}" keyTimes="${tl.moves.keyTimes}" dur="${n(tl.moves.dur)}s" begin="0s" fill="freeze"/>`
-    : ''
+  const move = motion(tl)
 
   const eye = (cx: number) =>
     `<ellipse cx="${cx}" cy="-36" rx="3.7" ry="3.9" fill="#f8fafc"><animate attributeName="ry" values="3.9;3.9;0.5;3.9" keyTimes="0;0.93;0.965;1" dur="4.2s" begin="${cx > 0 ? 0.35 : 0}s" repeatCount="indefinite"/></ellipse>` +
@@ -269,4 +273,92 @@ export const robotSvg = (
     open(o.width, o.height) +
     `<g transform="translate(${n(tl.start.x)} ${n(tl.start.y)})">${move}<g transform="scale(${SCALE})">${art}</g></g>${letter}</svg>`
   )
+}
+
+// ---- who is who -------------------------------------------------------------
+
+// Each robot is its own frame and only the top frame hears the pointer, so this
+// last layer carries an invisible target that walks with each robot and the card
+// pointing at it or clicking it shows. All of it is CSS inside the frame: no
+// message to the plugin, so no redraw.
+export type Tag = { agent: Agent; doing: string }
+
+// Up to `lines` lines of at most `size` characters, an ellipsis where it was cut.
+const wrap = (text: string, size: number, lines: number) => {
+  const out: string[] = []
+  let line = ''
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const piece = word.length > size ? `${word.slice(0, size - 1)}…` : word
+    if (!line || `${line} ${piece}`.length <= size) {
+      line = line ? `${line} ${piece}` : piece
+      continue
+    }
+    out.push(line)
+    line = piece
+    if (out.length === lines) {
+      const last = out[lines - 1] ?? ''
+      out[lines - 1] = `${last.length < size ? last : last.slice(0, size - 1)}…`
+
+      return out
+    }
+  }
+
+  return line ? [...out, line] : out
+}
+
+export const tagsSvg = (tags: Tag[], o: { width: number; height: number }) => {
+  // Sized in screen pixels, whatever width the scene is drawn at.
+  const k = W / o.width
+  const body = n(12 * k)
+  const head = n(13 * k)
+  const gap = n(16 * k)
+  const pad = n(9 * k)
+  const left = 8
+  const wide = W - 2 * left
+  const size = Math.max(20, Math.floor((wide - 2 * pad - 10 * k) / (body * 0.56)))
+
+  const style =
+    '<style>:root{color-scheme:light dark}.h{cursor:pointer;outline:none}.r,.c{opacity:0;pointer-events:none}' +
+    '.h:hover .r,.h:focus .r{opacity:1}' +
+    tags.map((_, i) => `#h${i}:hover~#c${i}{opacity:1}`).join('') +
+    tags.map((_, i) => `svg:not(:has(.h:hover)) #h${i}:focus~#c${i}{opacity:1}`).join('') +
+    '</style>'
+
+  const targets = tags
+    .map(({ agent }, i) => {
+      const tl = timeline(agent.phases, agent.planAt)
+
+      return (
+        `<g id="h${i}" class="h" tabindex="0" transform="translate(${n(tl.start.x)} ${n(tl.start.y)})">${motion(tl)}` +
+        '<ellipse class="r" cx="0" cy="0.6" rx="21" ry="6" fill="none" stroke="#fde047" stroke-width="1.6" stroke-dasharray="5 3.5"/>' +
+        '<rect x="-18" y="-52" width="36" height="56" fill="#000" fill-opacity="0"/></g>'
+      )
+    })
+    .join('')
+
+  const cards = tags
+    .map(({ agent, doing }, i) => {
+      const meta = `${agent.type} · ${agent.status}`
+      const rows: { text: string; size: number; fill: string; weight?: string }[] = [
+        { text: wrap(agent.label, size - 4, 1)[0] ?? '', size: head, fill: '#f8fafc', weight: '700' },
+        { text: meta, size: body, fill: '#9aa3b5' },
+        { text: wrap(`Doing: ${doing || 'Thinking'}`, size, 1)[0] ?? '', size: body, fill: '#e2e8f0' },
+        ...wrap(`Task: ${agent.task || 'No task text.'}`, size, 2).map(text => ({ text, size: body, fill: '#cbd5e1' })),
+      ]
+      const tall = n(2 * pad + rows.length * gap - (gap - head) / 2)
+      const text = rows
+        .map(
+          (row, r) =>
+            `<text x="${n(left + pad + (r === 0 ? 10 * k : 0))}" y="${n(6 + pad + head * 0.8 + r * gap)}" font-family="${FONT}" font-size="${row.size}"${row.weight ? ` font-weight="${row.weight}"` : ''} fill="${row.fill}">${esc(row.text)}</text>`,
+        )
+        .join('')
+
+      return (
+        `<g id="c${i}" class="c"><rect x="${left}" y="6" width="${wide}" height="${tall}" rx="${n(7 * k)}" fill="#0f1117" fill-opacity="0.94" stroke="${agent.color}" stroke-width="${n(1.4 * k)}"/>` +
+        `<circle cx="${n(left + pad + 3.5 * k)}" cy="${n(6 + pad + head * 0.45)}" r="${n(3.5 * k)}" fill="${agent.color}"/>${text}</g>`
+      )
+    })
+    .join('')
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${o.width}" height="${o.height}">${style}${targets}${cards}</svg>`
 }

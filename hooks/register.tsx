@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Agent, Ping, Strip } from '../types'
-import { backgroundSvg, robotSvg } from './art'
+import { backgroundSvg, robotSvg, tagsSvg } from './art'
 import { H, W, asDrawn, enter, freeSlot, goTo, goneAt, leave, posAt, reanchor, stationX } from './plan'
 
 const PANE = 'agents'
@@ -416,7 +416,7 @@ export const register: Register = on => {
           <Box flexDirection="column">
             <Text bold>Agent warehouse</Text>
             <Text dimColor>{counts}</Text>
-            {working > 0 && <Text dimColor>Click a robot&apos;s name to see what it is doing.</Text>}
+            {working > 0 && <Text dimColor>Point at or click a robot, or click its name, to see what it is doing.</Text>}
             {list.length === 0 && <Text dimColor>No agents yet. They appear here when Claude starts subagents.</Text>}
           </Box>
         )}
@@ -449,6 +449,7 @@ export const register: Register = on => {
 
     const width = Math.min(640, Math.max(300, Math.round(columns * 9)))
     const height = Math.round((width * H) / W)
+    const drawn = floor.map(agent => asDrawn(agent, now + LOAD_LEAD_MS))
 
     return (
       <Box flexDirection="column" gap={1}>
@@ -456,10 +457,10 @@ export const register: Register = on => {
           <Box key="floor">
             <ui.Svg source={backgroundSvg(width, height)} alt="The warehouse floor" width={width} height={height} isInteractive />
           </Box>
-          {floor.map(agent => (
+          {drawn.map(agent => (
             <Box key={`bot-${agent.id}`} position="absolute" top={0} left={0}>
               <ui.Svg
-                source={robotSvg(asDrawn(agent, now + LOAD_LEAD_MS), { width, height, selected: agent.id === chosen })}
+                source={robotSvg(agent, { width, height, selected: agent.id === chosen })}
                 alt={`${agent.label}: ${activity.get(agent.id)?.doing ?? agent.doing}`}
                 width={width}
                 height={height}
@@ -467,6 +468,20 @@ export const register: Register = on => {
               />
             </Box>
           ))}
+          {drawn.length > 0 && (
+            <Box key="tags" position="absolute" top={0} left={0}>
+              <ui.Svg
+                source={tagsSvg(
+                  drawn.map(agent => ({ agent, doing: activity.get(agent.id)?.doing ?? agent.doing })),
+                  { width, height },
+                )}
+                alt="Point at or click a robot to see what it is doing"
+                width={width}
+                height={height}
+                isInteractive
+              />
+            </Box>
+          )}
         </Box>
         <Box gap={1} flexWrap="wrap">
           {floor
