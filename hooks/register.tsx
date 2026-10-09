@@ -3,7 +3,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Agent, Ping, Strip } from '../types'
 import { backgroundSvg, robotSvg, tagsSvg } from './art'
-import { H, W, asDrawn, enter, freeSlot, goTo, goneAt, leave, posAt, reanchor, stationX } from './plan'
+import { H, W, asDrawn, enter, freeColor, freeSlot, goTo, goneAt, leave, posAt, reanchor, stationX } from './plan'
 
 const PANE = 'agents'
 // The strip stays a while after the last agent finishes, then makes room again.
@@ -17,9 +17,6 @@ const MIN_COLUMNS = 36
 // About how long a redrawn picture takes to load and start; moving robots are drawn this far ahead.
 const LOAD_LEAD_MS = 150
 const GLYPHS = { running: '●', done: '✓', failed: '✗', stopped: '■' } as const
-
-const KNOWN: Record<string, string> = { Explore: '#22d3ee', Plan: '#a78bfa', 'general-purpose': '#fbbf24' }
-const SPARE = ['#34d399', '#f472b6', '#60a5fa', '#fb923c', '#22d3ee', '#a78bfa', '#fbbf24']
 
 const agents = atom({ plugin: 'agent-warehouse', key: 'agents' } as const, [])
 const pings = atom({ plugin: 'agent-warehouse', key: 'pings' } as const, [])
@@ -44,8 +41,6 @@ const serial = <T,>(work: () => Promise<T>) => {
 }
 
 const clip = (text: string, size: number) => (text.length > size ? `${text.slice(0, size - 1)}…` : text)
-const colorOf = (type: string) =>
-  KNOWN[type] ?? SPARE[[...type].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % SPARE.length] ?? '#9ca3af'
 const labelOf = (list: Agent[], id: string) =>
   id === 'main' ? 'Main' : clip(list.find(agent => agent.id === id)?.label ?? id, 22)
 const elapsed = (ms: number) => {
@@ -264,7 +259,7 @@ export const register: Register = on => {
               slot,
               planAt: now,
               phases: [],
-              color: colorOf(e.subagentType),
+              color: freeColor(list, now),
             },
             now,
           )

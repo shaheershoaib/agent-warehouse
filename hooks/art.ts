@@ -195,10 +195,15 @@ export const robotSvg = (
       ? ''
       : `<animateTransform attributeName="transform" type="rotate" values="${side * -26} ${side * 11} -22;${side * 22} ${side * 11} -22;${side * -26} ${side * 11} -22" dur="0.7s" begin="${ms(tl.work)}" repeatCount="indefinite"/>`
 
-  const bob = tl.walks.map(w => cycle('translate', w, '0.42s', '0,0;0,-2.4;0,0')).join('') + (tl.cheer ? cycle('translate', tl.cheer, '0.5s', '0,0;0,-16;0,0') : '')
+  // A failed robot is sad from its sulk (or at once, redrawn after it) until it is out of sight.
+  const sad = tl.sulk ? tl.sulk[0] : a.status === 'failed' ? 0 : null
+  const bob =
+    tl.walks.map(w => cycle('translate', w, '0.42s', '0,0;0,-2.4;0,0')).join('') +
+    (tl.cheer ? cycle('translate', tl.cheer, '0.5s', '0,0;0,-16;0,0') : '') +
+    (tl.sulk ? cycle('translate', tl.sulk, '0.34s', '0,0;0,1.4;0,0') : '')
   const legL = tl.walks.map(w => cycle('rotate', w, '0.42s', '-24 -5 -9;24 -5 -9;-24 -5 -9')).join('')
   const legR = tl.walks.map(w => cycle('rotate', w, '0.42s', '24 5 -9;-24 5 -9;24 5 -9')).join('')
-  const tint = tl.sulk ? `<animate attributeName="fill" to="${mix(body, SAD_GREY, 0.72)}" ${window(tl.sulk).replace(/ dur="[^"]*"/, ' dur="0.4s"')} fill="freeze"/>` : ''
+  const tint = sad === null ? '' : `<animate attributeName="fill" to="${mix(body, SAD_GREY, 0.72)}" begin="${ms(sad)}" dur="0.4s" fill="freeze"/>`
   const move = motion(tl)
 
   const eye = (cx: number) =>
@@ -206,7 +211,7 @@ export const robotSvg = (
     `<circle cx="${cx + 0.7}" cy="-35.4" r="1.9" fill="#0f172a"/><circle cx="${cx + 1.3}" cy="-36.3" r="0.7" fill="#fff"/>`
   const sadEye = (cx: number) =>
     `<path d="M${cx - 3.4} -37q3.4 -3 6.8 0" fill="none" stroke="#f8fafc" stroke-width="1.6" stroke-linecap="round"/><circle cx="${cx}" cy="-32.6" r="1.2" fill="#93c5fd"/>`
-  const mouth = tl.sulk
+  const mouth = sad !== null
     ? `<path d="M-3 -27.4q3 -2.8 6 0" fill="none" stroke="#f8fafc" stroke-width="1.4" stroke-linecap="round"/>`
     : tl.cheer
       ? `<path d="M-4.6 -30q4.6 6 9.2 0z" fill="#f8fafc"/>`
@@ -225,8 +230,15 @@ export const robotSvg = (
         .join('') +
       '</g>'
     : ''
-  const cloud = tl.sulk
-    ? `<g opacity="0" transform="translate(0 -64)">${show(tl.sulk)}<ellipse cx="-6" cy="0" rx="9" ry="5.5" fill="#64748b"/><ellipse cx="5" cy="-2" rx="10" ry="6.5" fill="#64748b"/><ellipse cx="0" cy="2" rx="14" ry="4.5" fill="#64748b"/>` +
+  // Tears well at the outer corner of each eye and roll off the cheek, two at a time.
+  const tear = (cx: number, side: 1 | -1, delay: number) =>
+    `<path class="tear" d="M${n(cx + side * 2.6)} -35.2q2.1 2.9 1.7 4.2a1.7 1.7 0 0 1-3.4 0q-.4-1.3 1.7-4.2z" fill="#60a5fa" stroke="#e0f2fe" stroke-width="0.5">` +
+    `<animateTransform attributeName="transform" type="translate" values="0,0;${side * 1.6},6;${side * 4},17" keyTimes="0;0.35;1" dur="0.9s" begin="${ms((sad ?? 0) + delay)}" repeatCount="indefinite"/>` +
+    `<animate attributeName="opacity" values="1;1;0" keyTimes="0;0.6;1" dur="0.9s" begin="${ms((sad ?? 0) + delay)}" repeatCount="indefinite"/></path>`
+  const tears =
+    sad === null ? '' : `<g opacity="0">${show(sad)}${tear(-4.8, -1, 0)}${tear(-4.8, -1, 0.45)}${tear(4.8, 1, 0.2)}${tear(4.8, 1, 0.65)}</g>`
+  const cloud = sad !== null
+    ? `<g opacity="0" transform="translate(0 -64)">${show(sad)}<ellipse cx="-6" cy="0" rx="9" ry="5.5" fill="#64748b"/><ellipse cx="5" cy="-2" rx="10" ry="6.5" fill="#64748b"/><ellipse cx="0" cy="2" rx="14" ry="4.5" fill="#64748b"/>` +
       [-6, 0, 6]
         .map((x, i) => `<path d="M${x} 7v4" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round"><animateTransform attributeName="transform" type="translate" values="0,0;0,10" dur="0.7s" begin="${n(i * 0.2)}s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur="0.7s" begin="${n(i * 0.2)}s" repeatCount="indefinite"/></path>`)
         .join('') +
@@ -263,8 +275,8 @@ export const robotSvg = (
     `<path d="M-9.5 -44.4q9.5 -3.4 19 0" fill="none" stroke="${light}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.8"/>` +
     '<rect x="-10.6" y="-42.4" width="21.2" height="15.4" rx="6" fill="#0f172a"/>' +
     '<circle cx="-8.2" cy="-30.6" r="2" fill="#fb7185" fill-opacity="0.5"/><circle cx="8.2" cy="-30.6" r="2" fill="#fb7185" fill-opacity="0.5"/>' +
-    `<g>${hide(tl.sulk)}${eye(-4.8)}${eye(4.8)}</g>` +
-    (tl.sulk ? `<g opacity="0">${show(tl.sulk)}${sadEye(-4.8)}${sadEye(4.8)}</g>` : '') +
+    `<g>${sad === null ? hide(tl.sulk) : `<set attributeName="opacity" to="0" begin="${ms(sad)}" fill="freeze"/>`}${eye(-4.8)}${eye(4.8)}</g>` +
+    (sad !== null ? `<g opacity="0">${show(sad)}${sadEye(-4.8)}${sadEye(4.8)}</g>${tears}` : '') +
     mouth +
     `<path d="M0 -47v-6" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/><circle cx="0" cy="-55" r="2.8" fill="${tl.work !== null ? '#fde047' : light}" stroke="${INK}" stroke-width="1"><animate attributeName="fill-opacity" values="1;0.35;1" dur="1.4s" repeatCount="indefinite"/></circle>` +
     `${stars}${cloud}${bubble}</g>`

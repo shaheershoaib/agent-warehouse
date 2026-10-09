@@ -8,7 +8,7 @@ export const WALL = 80
 export const LANE = 226
 const SPEED = 80
 export const CHEER_MS = 1500
-export const SULK_MS = 2400
+export const SULK_MS = 4000
 // How long a letter is drawn after it is sent.
 export const LETTER_MS = 1_500
 
@@ -41,6 +41,24 @@ export const freeSlot = (agents: Agent[], station: StationId, except: string) =>
   }
 
   return slot
+}
+
+// Bright enough for the dark floor, far enough apart to tell robots apart.
+export const PALETTE = ['#22d3ee', '#fbbf24', '#a78bfa', '#34d399', '#f472b6', '#60a5fa', '#fb923c', '#a3e635', '#f87171', '#e879f9']
+
+// The first color no robot on the floor is wearing, one walking out included.
+export const freeColor = (agents: Agent[], now: number) => {
+  const worn = new Set(
+    agents
+      .filter(a => {
+        const out = goneAt(a)
+
+        return out === null || now < out
+      })
+      .map(a => a.color),
+  )
+
+  return PALETTE.find(c => !worn.has(c)) ?? PALETTE[agents.length % PALETTE.length] ?? '#9ca3af'
 }
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y)
