@@ -40,9 +40,21 @@ else
 fi
 [ -f "$src/.claude-plugin/plugin.json" ] || fail "the download is missing $NAME."
 
-rm -rf "$DEST"
+# Updated in place, never deleted and recreated, so a running session that watches this
+# folder can pick the new version up instead of keeping the old one until it restarts.
 mkdir -p "$DEST"
-for f in $FILES; do cp -R "$src/$f" "$DEST/$f"; done
+for f in $FILES; do
+  if [ -d "$src/$f" ]; then
+    mkdir -p "$DEST/$f"
+    cp -R "$src/$f/." "$DEST/$f/"
+  else
+    cp "$src/$f" "$DEST/$f"
+  fi
+done
+# Files this version no longer ships.
+(cd "$DEST" && find . -type f) | while IFS= read -r rel; do
+  [ -e "$src/$rel" ] || rm -f "$DEST/$rel"
+done
 
 mkdir -p "$CONFIG_DIR"
 if [ -f "$SETTINGS" ]; then
