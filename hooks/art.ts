@@ -8,6 +8,9 @@ const INK = '#14161c'
 const FONT = 'system-ui,-apple-system,Segoe UI,sans-serif'
 // Without a color scheme, Desktop's sandboxed frame paints an opaque white square.
 const SCHEME = '<style>:root{color-scheme:light dark}</style>'
+// Desktop reloads every picture on each redraw; while one reloads, this shows instead of
+// an empty pane. The floor picture's average color, measured from a render of it.
+export const FLOOR_FILL = '#363945'
 
 const part = (c: string, at: number) => parseInt(c.slice(at, at + 2), 16)
 const two = (n: number) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, '0')

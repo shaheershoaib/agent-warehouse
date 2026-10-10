@@ -1,6 +1,6 @@
 {
   "name": "agent-warehouse",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A vector warehouse where the session's agents are little robots: they walk in when spawned, go to the web, files, desk, bench or mail station as they work, cheer and walk out when done (or cry, when they fail). Point at or click a robot for what it is doing.",
   "author": {
     "name": "Shaheer Shoaib"

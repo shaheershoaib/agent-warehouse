@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Agent, Ping, Strip } from '../types'
-import { backgroundSvg, robotSvg, tagsSvg } from './art'
+import { FLOOR_FILL, backgroundSvg, robotSvg, tagsSvg } from './art'
 import { H, W, asDrawn, enter, freeColor, freeSlot, goTo, goneAt, leave, posAt, reanchor, stationX } from './plan'
 import { verdictOf } from './verdict'
 
@@ -461,7 +461,7 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column" gap={1}>
-        <Box position="relative">
+        <Box position="relative" alignSelf="flex-start" backgroundColor={FLOOR_FILL}>
           <Box key="floor">
             <ui.Svg source={backgroundSvg(width, height)} alt="The warehouse floor" width={width} height={height} isInteractive />
           </Box>
